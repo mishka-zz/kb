@@ -1,0 +1,66 @@
+#!/bin/sh
+# SPDX-FileCopyrightText: 2026 Mike Volokhov
+# SPDX-License-Identifier: 0BSD
+#
+# Run one cited test that is a program of its own, and say what became of it.
+#
+#   run-program --probe              whether there is anything to run it with
+#   run-program <path> [<name>]      run it, from the project root
+#
+# A sample of the contract in README.md beside this file, for the plainest
+# kind of test there is: an executable file that exits 0 when it passes, 77
+# when it is skipped and anything else when it fails - the convention the
+# automake test harness reads.  <name>, when the citation carries one after
+# its `::`, is handed to the program as its one argument, and what it makes
+# of it is the program's business.
+#
+# It belongs to the project once copied.  A project whose tests are run by a
+# framework writes the command that framework wants in its place, and names
+# it beside the files it owns in the `runners` field of kb/project.md.
+
+case $1 in
+--probe)
+	echo "each test runs as a program of its own"
+	exit 0
+	;;
+-h | --help)
+	echo "usage: run-program --probe | run-program <path> [<name>]"
+	exit 0
+	;;
+"")
+	echo "usage: run-program --probe | run-program <path> [<name>]"
+	exit 2
+	;;
+esac
+
+path=$1
+name=$2
+cited=$path${name:+::$name}
+
+if [ ! -f "$path" ]; then
+	echo "$path is not there"
+	exit 1
+fi
+if [ ! -x "$path" ]; then
+	echo "$path is not executable, so nothing ran"
+	exit 1
+fi
+
+case $path in
+/*) program=$path ;;
+*) program=./$path ;;
+esac
+
+if [ -n "$name" ]; then
+	"$program" "$name"
+else
+	"$program"
+fi
+status=$?
+
+case $status in
+0) echo "$cited passed" ;;
+77) echo "$cited was skipped" ;;
+*) echo "$cited failed, exit status $status" ;;
+esac
+exit $status
